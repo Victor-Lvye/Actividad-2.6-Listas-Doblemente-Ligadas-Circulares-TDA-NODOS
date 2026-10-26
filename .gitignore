@@ -1,0 +1,12 @@
+# Bytecode compilado — no se sube al repositorio
+out/
+*.class
+
+# IDE
+.vscode/
+.idea/
+*.iml
+
+# OS
+Thumbs.db
+.DS_Store
