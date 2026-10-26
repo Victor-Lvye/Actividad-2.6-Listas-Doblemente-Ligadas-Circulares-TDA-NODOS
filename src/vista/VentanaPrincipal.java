@@ -4,462 +4,268 @@ import modelo.Proceso;
 import tda.ListaCircular;
 
 import javax.swing.*;
-import javax.swing.border.EmptyBorder;
 import javax.swing.border.TitledBorder;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.awt.event.ActionEvent;
 
 /**
  * Interfaz gráfica principal del TDA Lista Circular.
+ * Diseño simple usando el Look & Feel del sistema operativo.
  *
  * Capas:
- *   - modelo  : record Proceso (inmutable)
- *   - tda     : ListaCircular (lógica pura, sin referencias a Swing)
- *   - vista   : VentanaPrincipal (eventos → llama al TDA → refresca la tabla)
- *
- * La GUI no conoce la implementación interna del TDA; solo invoca su API pública.
+ *   modelo → record Proceso
+ *   tda    → ListaCircular (sin referencias a Swing)
+ *   vista  → VentanaPrincipal (solo llama la API del TDA)
  */
 public class VentanaPrincipal extends JFrame {
 
-    // ── TDA ─────────────────────────────────────────────────────────────────
     private final ListaCircular lista = new ListaCircular();
 
-    // ── Colores ──────────────────────────────────────────────────────────────
-    private static final Color COLOR_FONDO        = new Color(15, 23, 42);
-    private static final Color COLOR_PANEL        = new Color(30, 41, 59);
-    private static final Color COLOR_ACENTO       = new Color(99, 102, 241);
-    private static final Color COLOR_ACENTO2      = new Color(236, 72, 153);
-    private static final Color COLOR_TEXTO        = new Color(226, 232, 240);
-    private static final Color COLOR_SUBTEXTO     = new Color(148, 163, 184);
-    private static final Color COLOR_CAMPO        = new Color(51, 65, 85);
-    private static final Color COLOR_BORDE        = new Color(71, 85, 105);
-    private static final Color COLOR_FILA_PAR     = new Color(30, 41, 59);
-    private static final Color COLOR_FILA_IMPAR   = new Color(44, 55, 74);
-    private static final Color COLOR_CURSOR       = new Color(99, 102, 241, 80);
-    private static final Color COLOR_VERDE        = new Color(34, 197, 94);
-    private static final Color COLOR_ROJO         = new Color(239, 68, 68);
-    private static final Color COLOR_AMARILLO     = new Color(234, 179, 8);
+    // ── Formulario ───────────────────────────────────────────
+    private JTextField txtId, txtNombre, txtPrioridad, txtTiempo;
+    private JTextField txtPosicion, txtBuscar;
 
-    // ── Campos del formulario ────────────────────────────────────────────────
-    private JTextField txtId, txtNombre, txtPrioridad, txtTiempo, txtPosicion, txtBuscar;
-
-    // ── Tabla ────────────────────────────────────────────────────────────────
-    private JTable tabla;
+    // ── Tabla ────────────────────────────────────────────────
     private DefaultTableModel modeloTabla;
+    private JTable tabla;
 
-    // ── Panel de cursor ──────────────────────────────────────────────────────
-    private JLabel lblCursorDato, lblCursorPos, lblIndicadorCircular;
+    // ── Panel de cursor / navegación ─────────────────────────
+    private JLabel lblCursorInfo;
+    private JLabel lblIndicador;
 
-    // ── Panel de estado ──────────────────────────────────────────────────────
+    // ── Barra de estado ──────────────────────────────────────
     private JLabel lblEstado;
+    private JLabel lblTamanio;
 
     // =========================================================
     public VentanaPrincipal() {
-        super("TDA Lista Circular — Planificador de Procesos");
-        configurarVentana();
-        construirUI();
+        super("Lista Circular — TDA con Records Java");
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        setSize(900, 650);
+        setMinimumSize(new Dimension(800, 560));
+        setLocationRelativeTo(null);
+
+        setLayout(new BorderLayout(6, 6));
+        ((JPanel) getContentPane()).setBorder(BorderFactory.createEmptyBorder(8, 8, 4, 8));
+
+        add(crearPanelIzquierdo(), BorderLayout.WEST);
+        add(crearPanelDerecho(),   BorderLayout.CENTER);
+        add(crearBarraEstado(),    BorderLayout.SOUTH);
+
         setVisible(true);
     }
 
     // =========================================================
-    // Configuración de la ventana
+    // Panel izquierdo: formulario + botones
     // =========================================================
-    private void configurarVentana() {
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(1100, 780);
-        setMinimumSize(new Dimension(960, 680));
-        setLocationRelativeTo(null);
-        getContentPane().setBackground(COLOR_FONDO);
-        setLayout(new BorderLayout(0, 0));
-    }
+    private JPanel crearPanelIzquierdo() {
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setPreferredSize(new Dimension(270, 0));
 
-    // =========================================================
-    // Construcción de la UI
-    // =========================================================
-    private void construirUI() {
-        add(crearPanelSuperior(),  BorderLayout.NORTH);
-        add(crearPanelCentral(),   BorderLayout.CENTER);
-        add(crearBarraEstado(),    BorderLayout.SOUTH);
-    }
-
-    // ── Panel superior: título ───────────────────────────────────────────────
-    private JPanel crearPanelSuperior() {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBackground(COLOR_PANEL);
-        panel.setBorder(new EmptyBorder(14, 20, 14, 20));
-
-        JLabel titulo = new JLabel("⬡  Lista Circular Doblemente Enlazada");
-        titulo.setFont(new Font("Segoe UI", Font.BOLD, 20));
-        titulo.setForeground(COLOR_TEXTO);
-
-        JLabel subtitulo = new JLabel("Planificador Round-Robin  ·  TDA con Records Java");
-        subtitulo.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        subtitulo.setForeground(COLOR_SUBTEXTO);
-
-        JPanel textos = new JPanel(new GridLayout(2, 1, 0, 2));
-        textos.setOpaque(false);
-        textos.add(titulo);
-        textos.add(subtitulo);
-        panel.add(textos, BorderLayout.WEST);
-
-        JLabel icono = new JLabel("∞", SwingConstants.RIGHT);
-        icono.setFont(new Font("Segoe UI", Font.BOLD, 36));
-        icono.setForeground(COLOR_ACENTO);
-        panel.add(icono, BorderLayout.EAST);
+        panel.add(crearPanelFormulario());
+        panel.add(Box.createVerticalStrut(6));
+        panel.add(crearPanelInsercion());
+        panel.add(Box.createVerticalStrut(6));
+        panel.add(crearPanelRemocion());
+        panel.add(Box.createVerticalStrut(6));
+        panel.add(crearPanelMuestra());
+        panel.add(Box.createVerticalStrut(6));
+        panel.add(crearPanelBusqueda());
+        panel.add(Box.createVerticalStrut(6));
+        panel.add(crearPanelAuxiliares());
+        panel.add(Box.createVerticalGlue());
 
         return panel;
     }
 
-    // ── Panel central: columna izquierda (controles) + derecha (tabla + cursor)
-    private JPanel crearPanelCentral() {
-        JPanel panel = new JPanel(new BorderLayout(12, 0));
-        panel.setBackground(COLOR_FONDO);
-        panel.setBorder(new EmptyBorder(12, 12, 0, 12));
-
-        panel.add(crearColumnaIzquierda(), BorderLayout.WEST);
-        panel.add(crearColumnaDerecha(),   BorderLayout.CENTER);
-
-        return panel;
-    }
-
-    // ── Columna izquierda ────────────────────────────────────────────────────
-    private JPanel crearColumnaIzquierda() {
-        JPanel col = new JPanel();
-        col.setLayout(new BoxLayout(col, BoxLayout.Y_AXIS));
-        col.setBackground(COLOR_FONDO);
-        col.setPreferredSize(new Dimension(310, 0));
-
-        col.add(crearPanelFormulario());
-        col.add(Box.createVerticalStrut(10));
-        col.add(crearPanelInsercion());
-        col.add(Box.createVerticalStrut(10));
-        col.add(crearPanelRemocion());
-        col.add(Box.createVerticalStrut(10));
-        col.add(crearPanelMuestra());
-        col.add(Box.createVerticalStrut(10));
-        col.add(crearPanelBusqueda());
-        col.add(Box.createVerticalStrut(10));
-        col.add(crearPanelAuxiliares());
-        col.add(Box.createVerticalGlue());
-
-        return col;
-    }
-
-    // ── Columna derecha ──────────────────────────────────────────────────────
-    private JPanel crearColumnaDerecha() {
-        JPanel col = new JPanel(new BorderLayout(0, 10));
-        col.setBackground(COLOR_FONDO);
-
-        col.add(crearPanelCursor(),     BorderLayout.NORTH);
-        col.add(crearPanelTabla(),      BorderLayout.CENTER);
-
-        return col;
-    }
-
-    // =========================================================
-    // Panel Formulario
-    // =========================================================
+    // ── Formulario ───────────────────────────────────────────
     private JPanel crearPanelFormulario() {
-        JPanel panel = crearPanelTitulado("📋  Datos del Proceso");
+        JPanel p = titulado("Datos del Proceso");
+        p.setLayout(new GridLayout(0, 2, 4, 4));
 
-        panel.setLayout(new GridLayout(0, 2, 6, 6));
+        p.add(new JLabel("ID:"));
+        txtId = new JTextField("0", 8);
+        p.add(txtId);
 
-        panel.add(etiqueta("ID:"));
-        txtId = campo("0");
-        panel.add(txtId);
+        p.add(new JLabel("Nombre:"));
+        txtNombre = new JTextField(8);
+        p.add(txtNombre);
 
-        panel.add(etiqueta("Nombre:"));
-        txtNombre = campo("ej. Kernel");
-        panel.add(txtNombre);
+        p.add(new JLabel("Prioridad (1-10):"));
+        txtPrioridad = new JTextField("1", 8);
+        p.add(txtPrioridad);
 
-        panel.add(etiqueta("Prioridad (1-10):"));
-        txtPrioridad = campo("1");
-        panel.add(txtPrioridad);
+        p.add(new JLabel("Tiempo CPU (ms):"));
+        txtTiempo = new JTextField("10.0", 8);
+        p.add(txtTiempo);
 
-        panel.add(etiqueta("Tiempo CPU (ms):"));
-        txtTiempo = campo("10.0");
-        panel.add(txtTiempo);
+        p.add(new JLabel("Posición (base 0):"));
+        txtPosicion = new JTextField("0", 8);
+        p.add(txtPosicion);
 
-        panel.add(etiqueta("Posición (base 0):"));
-        txtPosicion = campo("0");
-        panel.add(txtPosicion);
-
-        return panel;
+        return p;
     }
 
-    // =========================================================
-    // Panel Inserción
-    // =========================================================
+    // ── Inserción ─────────────────────────────────────────────
     private JPanel crearPanelInsercion() {
-        JPanel panel = crearPanelTitulado("➕  Insertar");
-        panel.setLayout(new GridLayout(1, 3, 6, 0));
-
-        panel.add(boton("Al Principio", COLOR_ACENTO,  e -> accionInsertarPrincipio()));
-        panel.add(boton("Al Final",     COLOR_ACENTO,  e -> accionInsertarFinal()));
-        panel.add(boton("Por Posición", COLOR_AMARILLO, e -> accionInsertarPosicion()));
-
-        return panel;
+        JPanel p = titulado("Insertar");
+        p.setLayout(new GridLayout(1, 3, 4, 0));
+        p.add(btn("Al principio", e -> accionInsertarPrincipio()));
+        p.add(btn("Al final",     e -> accionInsertarFinal()));
+        p.add(btn("Por posición", e -> accionInsertarPosicion()));
+        return p;
     }
 
-    // =========================================================
-    // Panel Remoción
-    // =========================================================
+    // ── Remoción ──────────────────────────────────────────────
     private JPanel crearPanelRemocion() {
-        JPanel panel = crearPanelTitulado("➖  Remover");
-        panel.setLayout(new GridLayout(1, 3, 6, 0));
-
-        panel.add(boton("Al Principio", COLOR_ROJO,    e -> accionRemoverPrincipio()));
-        panel.add(boton("Al Final",     COLOR_ROJO,    e -> accionRemoverFinal()));
-        panel.add(boton("Por Posición", COLOR_AMARILLO, e -> accionRemoverPosicion()));
-
-        return panel;
+        JPanel p = titulado("Remover");
+        p.setLayout(new GridLayout(1, 3, 4, 0));
+        p.add(btn("Al principio", e -> accionRemoverPrincipio()));
+        p.add(btn("Al final",     e -> accionRemoverFinal()));
+        p.add(btn("Por posición", e -> accionRemoverPosicion()));
+        return p;
     }
 
-    // =========================================================
-    // Panel Muestra
-    // =========================================================
+    // ── Muestra ───────────────────────────────────────────────
     private JPanel crearPanelMuestra() {
-        JPanel panel = crearPanelTitulado("🔍  Mostrar");
-        panel.setLayout(new GridLayout(1, 3, 6, 0));
-
-        panel.add(boton("Primero",     COLOR_VERDE, e -> accionMostrarPrincipio()));
-        panel.add(boton("Último",      COLOR_VERDE, e -> accionMostrarFinal()));
-        panel.add(boton("Por Posición",COLOR_VERDE, e -> accionMostrarPosicion()));
-
-        return panel;
+        JPanel p = titulado("Mostrar");
+        p.setLayout(new GridLayout(1, 3, 4, 0));
+        p.add(btn("Primero",      e -> accionMostrarPrincipio()));
+        p.add(btn("Ultimo",       e -> accionMostrarFinal()));
+        p.add(btn("Por posicion", e -> accionMostrarPosicion()));
+        return p;
     }
 
-    // =========================================================
-    // Panel Búsqueda
-    // =========================================================
+    // ── Búsqueda ──────────────────────────────────────────────
     private JPanel crearPanelBusqueda() {
-        JPanel panel = crearPanelTitulado("🔎  Buscar");
+        JPanel p = titulado("Buscar");
+        p.setLayout(new GridLayout(2, 1, 0, 4));
 
-        JPanel fila1 = new JPanel(new BorderLayout(6, 0));
+        JPanel fila1 = new JPanel(new BorderLayout(4, 0));
         fila1.setOpaque(false);
-        fila1.add(etiqueta("Nombre / ID:"), BorderLayout.WEST);
-        txtBuscar = campo("nombre o id");
+        fila1.add(new JLabel("Valor:"), BorderLayout.WEST);
+        txtBuscar = new JTextField(8);
         fila1.add(txtBuscar, BorderLayout.CENTER);
 
-        JPanel fila2 = new JPanel(new GridLayout(1, 2, 6, 0));
+        JPanel fila2 = new JPanel(new GridLayout(1, 2, 4, 0));
         fila2.setOpaque(false);
-        fila2.add(boton("Por Nombre", COLOR_ACENTO2, e -> accionBuscarNombre()));
-        fila2.add(boton("Por ID",     COLOR_ACENTO2, e -> accionBuscarId()));
+        fila2.add(btn("Por nombre", e -> accionBuscarNombre()));
+        fila2.add(btn("Por ID",     e -> accionBuscarId()));
 
-        panel.setLayout(new GridLayout(2, 1, 0, 6));
-        panel.add(fila1);
-        panel.add(fila2);
-
-        return panel;
+        p.add(fila1);
+        p.add(fila2);
+        return p;
     }
 
-    // =========================================================
-    // Panel Auxiliares (vaciar)
-    // =========================================================
+    // ── Auxiliares ────────────────────────────────────────────
     private JPanel crearPanelAuxiliares() {
-        JPanel panel = crearPanelTitulado("⚙️  Auxiliares");
-        panel.setLayout(new GridLayout(1, 1));
-        panel.add(boton("Vaciar Lista", COLOR_ROJO, e -> accionVaciar()));
-        return panel;
+        JPanel p = titulado("Auxiliares");
+        p.setLayout(new GridLayout(1, 1));
+        p.add(btn("Vaciar lista", e -> accionVaciar()));
+        return p;
     }
 
     // =========================================================
-    // Panel Cursor (navegación circular)
+    // Panel derecho: navegación + tabla
     // =========================================================
-    private JPanel crearPanelCursor() {
-        JPanel panel = crearPanelTitulado("🔄  Nodo actual  ·  Navegación Circular");
-        panel.setLayout(new BorderLayout(10, 6));
+    private JPanel crearPanelDerecho() {
+        JPanel panel = new JPanel(new BorderLayout(0, 6));
 
-        // Info del nodo cursor
+        panel.add(crearPanelNavegacion(), BorderLayout.NORTH);
+        panel.add(crearPanelTabla(),      BorderLayout.CENTER);
+
+        return panel;
+    }
+
+    // ── Navegación circular ───────────────────────────────────
+    private JPanel crearPanelNavegacion() {
+        JPanel p = titulado("Nodo actual  /  Navegacion Circular");
+        p.setLayout(new BorderLayout(10, 4));
+
+        lblCursorInfo = new JLabel("(lista vacia)");
+        lblCursorInfo.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
+
+        lblIndicador = new JLabel(" ");
+        lblIndicador.setFont(new Font(Font.SANS_SERIF, Font.ITALIC, 11));
+
         JPanel info = new JPanel(new GridLayout(2, 1, 0, 2));
         info.setOpaque(false);
+        info.add(lblCursorInfo);
+        info.add(lblIndicador);
 
-        lblCursorDato = new JLabel("(lista vacía)", SwingConstants.CENTER);
-        lblCursorDato.setFont(new Font("Consolas", Font.BOLD, 13));
-        lblCursorDato.setForeground(COLOR_TEXTO);
-
-        lblCursorPos = new JLabel("Posición: —", SwingConstants.CENTER);
-        lblCursorPos.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        lblCursorPos.setForeground(COLOR_SUBTEXTO);
-
-        info.add(lblCursorDato);
-        info.add(lblCursorPos);
-
-        // Indicador circular
-        lblIndicadorCircular = new JLabel("", SwingConstants.CENTER);
-        lblIndicadorCircular.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        lblIndicadorCircular.setForeground(COLOR_AMARILLO);
-
-        // Botones navegación
-        JPanel botones = new JPanel(new GridLayout(1, 2, 8, 0));
+        JPanel botones = new JPanel(new GridLayout(1, 2, 6, 0));
         botones.setOpaque(false);
-        JButton btnAnterior = boton("◀  Anterior", new Color(79, 70, 229), e -> accionAnterior());
-        JButton btnSiguiente = boton("Siguiente  ▶", new Color(79, 70, 229), e -> accionSiguiente());
-        botones.add(btnAnterior);
-        botones.add(btnSiguiente);
+        botones.add(btn("< Anterior", e -> accionAnterior()));
+        botones.add(btn("Siguiente >", e -> accionSiguiente()));
 
-        JPanel derecha = new JPanel(new GridLayout(2, 1, 0, 4));
-        derecha.setOpaque(false);
-        derecha.add(lblIndicadorCircular);
-        derecha.add(botones);
-
-        panel.add(info,    BorderLayout.CENTER);
-        panel.add(derecha, BorderLayout.EAST);
-
-        return panel;
+        p.add(info,    BorderLayout.CENTER);
+        p.add(botones, BorderLayout.EAST);
+        return p;
     }
 
-    // =========================================================
-    // Panel Tabla
-    // =========================================================
+    // ── Tabla ─────────────────────────────────────────────────
     private JPanel crearPanelTabla() {
-        JPanel panel = crearPanelTitulado("📊  Contenido del Anillo");
-        panel.setLayout(new BorderLayout());
+        JPanel p = titulado("Contenido del anillo");
+        p.setLayout(new BorderLayout());
 
-        String[] columnas = {"Pos", "ID", "Nombre", "Prioridad", "Tiempo (ms)", "← Ant", "Sig →"};
-        modeloTabla = new DefaultTableModel(columnas, 0) {
-            @Override
-            public boolean isCellEditable(int row, int col) { return false; }
+        String[] cols = {"Pos", "ID", "Nombre", "Prioridad", "Tiempo(ms)", "<- Ant", "Sig ->"};
+        modeloTabla = new DefaultTableModel(cols, 0) {
+            @Override public boolean isCellEditable(int r, int c) { return false; }
         };
 
-        tabla = new JTable(modeloTabla) {
-            @Override
-            public Component prepareRenderer(javax.swing.table.TableCellRenderer r, int row, int col) {
-                Component c = super.prepareRenderer(r, row, col);
-                // Resaltar la fila del cursor
-                int cursorPos = lista.posicionCursor();
-                if (row == cursorPos) {
-                    c.setBackground(new Color(99, 102, 241, 120));
-                    c.setForeground(Color.WHITE);
-                } else {
-                    c.setBackground(row % 2 == 0 ? COLOR_FILA_PAR : COLOR_FILA_IMPAR);
-                    c.setForeground(COLOR_TEXTO);
-                }
-                return c;
-            }
-        };
+        tabla = new JTable(modeloTabla);
+        tabla.setRowHeight(22);
+        tabla.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
+        tabla.getTableHeader().setReorderingAllowed(false);
+        tabla.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
-        tabla.setBackground(COLOR_FILA_PAR);
-        tabla.setForeground(COLOR_TEXTO);
-        tabla.setGridColor(COLOR_BORDE);
-        tabla.setRowHeight(28);
-        tabla.setFont(new Font("Consolas", Font.PLAIN, 12));
-        tabla.getTableHeader().setBackground(COLOR_PANEL);
-        tabla.getTableHeader().setForeground(COLOR_SUBTEXTO);
-        tabla.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
-        tabla.setSelectionBackground(COLOR_ACENTO);
-        tabla.setSelectionForeground(Color.WHITE);
-        tabla.setShowHorizontalLines(true);
-        tabla.setShowVerticalLines(false);
+        // Anchos de columna
+        int[] anchos = {35, 45, 130, 65, 90, 90, 90};
+        for (int i = 0; i < anchos.length; i++) {
+            tabla.getColumnModel().getColumn(i).setPreferredWidth(anchos[i]);
+        }
 
-        // Ancho de columnas
-        tabla.getColumnModel().getColumn(0).setPreferredWidth(35);
-        tabla.getColumnModel().getColumn(1).setPreferredWidth(45);
-        tabla.getColumnModel().getColumn(2).setPreferredWidth(130);
-        tabla.getColumnModel().getColumn(3).setPreferredWidth(70);
-        tabla.getColumnModel().getColumn(4).setPreferredWidth(90);
-        tabla.getColumnModel().getColumn(5).setPreferredWidth(90);
-        tabla.getColumnModel().getColumn(6).setPreferredWidth(90);
-
-        JScrollPane scroll = new JScrollPane(tabla);
-        scroll.getViewport().setBackground(COLOR_FILA_PAR);
-        scroll.setBorder(BorderFactory.createLineBorder(COLOR_BORDE));
-
-        panel.add(scroll, BorderLayout.CENTER);
-        return panel;
+        p.add(new JScrollPane(tabla), BorderLayout.CENTER);
+        return p;
     }
 
-    // =========================================================
-    // Barra de estado
-    // =========================================================
+    // ── Barra de estado ───────────────────────────────────────
     private JPanel crearBarraEstado() {
         JPanel barra = new JPanel(new BorderLayout());
-        barra.setBackground(new Color(23, 32, 50));
-        barra.setBorder(new EmptyBorder(6, 16, 6, 16));
+        barra.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(1, 0, 0, 0, Color.GRAY),
+                BorderFactory.createEmptyBorder(3, 4, 3, 4)));
 
-        lblEstado = new JLabel("Listo. La lista está vacía.");
-        lblEstado.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        lblEstado.setForeground(COLOR_SUBTEXTO);
+        lblEstado  = new JLabel("Listo.");
+        lblTamanio = new JLabel("Tamanio: 0");
+        lblTamanio.setFont(lblTamanio.getFont().deriveFont(Font.BOLD));
 
-        JLabel tam = new JLabel("Tamaño: 0", SwingConstants.RIGHT);
-        tam.setName("lblTamanio");
-        tam.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        tam.setForeground(COLOR_ACENTO);
-        barra.add(lblEstado, BorderLayout.WEST);
-        barra.add(tam,       BorderLayout.EAST);
+        barra.add(lblEstado,  BorderLayout.WEST);
+        barra.add(lblTamanio, BorderLayout.EAST);
         return barra;
     }
 
     // =========================================================
-    // Helpers de construcción de componentes
+    // Helpers de construcción
     // =========================================================
-    private JPanel crearPanelTitulado(String titulo) {
-        JPanel panel = new JPanel();
-        panel.setBackground(COLOR_PANEL);
-        TitledBorder borde = BorderFactory.createTitledBorder(
-                BorderFactory.createLineBorder(COLOR_BORDE), titulo);
-        borde.setTitleColor(COLOR_SUBTEXTO);
-        borde.setTitleFont(new Font("Segoe UI", Font.BOLD, 11));
-        panel.setBorder(BorderFactory.createCompoundBorder(
-                borde, new EmptyBorder(4, 6, 6, 6)));
-        return panel;
+    private JPanel titulado(String titulo) {
+        JPanel p = new JPanel();
+        p.setBorder(BorderFactory.createTitledBorder(
+                BorderFactory.createEtchedBorder(), titulo,
+                TitledBorder.LEFT, TitledBorder.TOP));
+        return p;
     }
 
-    private JLabel etiqueta(String texto) {
-        JLabel lbl = new JLabel(texto);
-        lbl.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        lbl.setForeground(COLOR_SUBTEXTO);
-        return lbl;
-    }
-
-    private JTextField campo(String placeholder) {
-        JTextField tf = new JTextField(placeholder);
-        tf.setBackground(COLOR_CAMPO);
-        tf.setForeground(COLOR_TEXTO);
-        tf.setCaretColor(COLOR_TEXTO);
-        tf.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(COLOR_BORDE),
-                new EmptyBorder(3, 6, 3, 6)));
-        tf.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        // Limpiar placeholder al foco
-        tf.addFocusListener(new java.awt.event.FocusAdapter() {
-            public void focusGained(java.awt.event.FocusEvent e) {
-                if (tf.getText().equals(placeholder)) tf.setText("");
-            }
-        });
-        return tf;
-    }
-
-    private JButton boton(String texto, Color colorBase, java.awt.event.ActionListener accion) {
-        JButton btn = new JButton(texto);
-        btn.setBackground(colorBase);
-        btn.setForeground(Color.WHITE);
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        btn.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(colorBase.darker()),
-                new EmptyBorder(5, 8, 5, 8)));
-        btn.setFocusPainted(false);
-        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btn.addActionListener(accion);
-        // Hover
-        btn.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseEntered(java.awt.event.MouseEvent e) {
-                btn.setBackground(colorBase.brighter());
-            }
-            public void mouseExited(java.awt.event.MouseEvent e) {
-                btn.setBackground(colorBase);
-            }
-        });
-        return btn;
+    private JButton btn(String texto, java.awt.event.ActionListener accion) {
+        JButton b = new JButton(texto);
+        b.addActionListener(accion);
+        return b;
     }
 
     // =========================================================
-    // Leer y validar campos del formulario
+    // Leer y validar campos
     // =========================================================
-
-    /** Construye y retorna un Proceso a partir de los campos del formulario.
-     *  Lanza IllegalArgumentException con mensaje amigable si hay errores. */
     private Proceso leerProceso() {
         int id;
         String nombre;
@@ -471,25 +277,21 @@ public class VentanaPrincipal extends JFrame {
         } catch (NumberFormatException e) {
             throw new IllegalArgumentException("El campo ID debe ser un número entero.");
         }
-
         nombre = txtNombre.getText().trim();
         if (nombre.isEmpty()) {
             throw new IllegalArgumentException("El campo Nombre no puede estar vacío.");
         }
-
         try {
             prioridad = Integer.parseInt(txtPrioridad.getText().trim());
         } catch (NumberFormatException e) {
             throw new IllegalArgumentException("La Prioridad debe ser un número entero (1-10).");
         }
-
         try {
             tiempo = Double.parseDouble(txtTiempo.getText().trim());
         } catch (NumberFormatException e) {
             throw new IllegalArgumentException("El Tiempo CPU debe ser un número decimal.");
         }
-
-        return new Proceso(id, nombre, prioridad, tiempo); // el record valida el resto
+        return new Proceso(id, nombre, prioridad, tiempo);
     }
 
     private int leerPosicion() {
@@ -507,34 +309,28 @@ public class VentanaPrincipal extends JFrame {
         try {
             Proceso p = leerProceso();
             lista.insertarAlPrincipio(p);
-            estado("✅ Proceso '" + p.nombre() + "' insertado al principio.");
+            estado("Insertado al principio: " + p.nombre());
             refrescar();
-        } catch (Exception ex) {
-            error(ex.getMessage());
-        }
+        } catch (Exception ex) { error(ex.getMessage()); }
     }
 
     private void accionInsertarFinal() {
         try {
             Proceso p = leerProceso();
             lista.insertarAlFinal(p);
-            estado("✅ Proceso '" + p.nombre() + "' insertado al final.");
+            estado("Insertado al final: " + p.nombre());
             refrescar();
-        } catch (Exception ex) {
-            error(ex.getMessage());
-        }
+        } catch (Exception ex) { error(ex.getMessage()); }
     }
 
     private void accionInsertarPosicion() {
         try {
-            Proceso p   = leerProceso();
-            int pos     = leerPosicion();
+            Proceso p = leerProceso();
+            int pos   = leerPosicion();
             lista.insertarEnPosicion(p, pos);
-            estado("✅ Proceso '" + p.nombre() + "' insertado en posición " + pos + ".");
+            estado("Insertado en posicion " + pos + ": " + p.nombre());
             refrescar();
-        } catch (Exception ex) {
-            error(ex.getMessage());
-        }
+        } catch (Exception ex) { error(ex.getMessage()); }
     }
 
     // =========================================================
@@ -543,32 +339,26 @@ public class VentanaPrincipal extends JFrame {
     private void accionRemoverPrincipio() {
         try {
             Proceso p = lista.removerAlPrincipio();
-            estado("🗑️ Proceso '" + p.nombre() + "' removido del principio.");
+            estado("Removido del principio: " + p.nombre());
             refrescar();
-        } catch (Exception ex) {
-            error(ex.getMessage());
-        }
+        } catch (Exception ex) { error(ex.getMessage()); }
     }
 
     private void accionRemoverFinal() {
         try {
             Proceso p = lista.removerAlFinal();
-            estado("🗑️ Proceso '" + p.nombre() + "' removido del final.");
+            estado("Removido del final: " + p.nombre());
             refrescar();
-        } catch (Exception ex) {
-            error(ex.getMessage());
-        }
+        } catch (Exception ex) { error(ex.getMessage()); }
     }
 
     private void accionRemoverPosicion() {
         try {
             int pos   = leerPosicion();
             Proceso p = lista.removerEnPosicion(pos);
-            estado("🗑️ Proceso '" + p.nombre() + "' removido de posición " + pos + ".");
+            estado("Removido de posicion " + pos + ": " + p.nombre());
             refrescar();
-        } catch (Exception ex) {
-            error(ex.getMessage());
-        }
+        } catch (Exception ex) { error(ex.getMessage()); }
     }
 
     // =========================================================
@@ -578,33 +368,27 @@ public class VentanaPrincipal extends JFrame {
         try {
             Proceso p = lista.mostrarAlPrincipio();
             lista.irAlPrimero();
-            estado("🔍 Primero → " + p);
+            estado("Primero -> " + p);
             refrescar();
-        } catch (Exception ex) {
-            error(ex.getMessage());
-        }
+        } catch (Exception ex) { error(ex.getMessage()); }
     }
 
     private void accionMostrarFinal() {
         try {
             Proceso p = lista.mostrarAlFinal();
             lista.irAlUltimo();
-            estado("🔍 Último → " + p);
+            estado("Ultimo -> " + p);
             refrescar();
-        } catch (Exception ex) {
-            error(ex.getMessage());
-        }
+        } catch (Exception ex) { error(ex.getMessage()); }
     }
 
     private void accionMostrarPosicion() {
         try {
             int pos   = leerPosicion();
             Proceso p = lista.mostrarEnPosicion(pos);
-            estado("🔍 Posición " + pos + " → " + p);
+            estado("Posicion " + pos + " -> " + p);
             refrescar();
-        } catch (Exception ex) {
-            error(ex.getMessage());
-        }
+        } catch (Exception ex) { error(ex.getMessage()); }
     }
 
     // =========================================================
@@ -614,42 +398,30 @@ public class VentanaPrincipal extends JFrame {
         try {
             boolean eraUltimo = lista.cursorEsUltimo();
             Proceso p = lista.avanzarSiguiente();
-            String extra = eraUltimo ? "  🔄 [ultimo → primero]" : "";
-            estado("▶ Siguiente → " + p.nombre() + extra);
             if (eraUltimo) {
-                lblIndicadorCircular.setText("🔄 ultimo → primero");
-            } else if (lista.cursorEsUltimo()) {
-                lblIndicadorCircular.setText("⚠️ En el último nodo");
-            } else if (lista.cursorEsPrimero()) {
-                lblIndicadorCircular.setText("⚠️ En el primer nodo");
+                lblIndicador.setText("[Circular: ultimo -> primero]");
+                estado("Siguiente (circular): " + p.nombre());
             } else {
-                lblIndicadorCircular.setText("");
+                lblIndicador.setText(lista.cursorEsUltimo() ? "[En el ultimo nodo]" : "");
+                estado("Siguiente -> " + p.nombre());
             }
             refrescar();
-        } catch (Exception ex) {
-            error(ex.getMessage());
-        }
+        } catch (Exception ex) { error(ex.getMessage()); }
     }
 
     private void accionAnterior() {
         try {
             boolean eraPrimero = lista.cursorEsPrimero();
             Proceso p = lista.retrocederAnterior();
-            String extra = eraPrimero ? "  🔄 [primero → ultimo]" : "";
-            estado("◀ Anterior → " + p.nombre() + extra);
             if (eraPrimero) {
-                lblIndicadorCircular.setText("🔄 primero → ultimo");
-            } else if (lista.cursorEsPrimero()) {
-                lblIndicadorCircular.setText("⚠️ En el primer nodo");
-            } else if (lista.cursorEsUltimo()) {
-                lblIndicadorCircular.setText("⚠️ En el último nodo");
+                lblIndicador.setText("[Circular: primero -> ultimo]");
+                estado("Anterior (circular): " + p.nombre());
             } else {
-                lblIndicadorCircular.setText("");
+                lblIndicador.setText(lista.cursorEsPrimero() ? "[En el primer nodo]" : "");
+                estado("Anterior -> " + p.nombre());
             }
             refrescar();
-        } catch (Exception ex) {
-            error(ex.getMessage());
-        }
+        } catch (Exception ex) { error(ex.getMessage()); }
     }
 
     // =========================================================
@@ -658,28 +430,20 @@ public class VentanaPrincipal extends JFrame {
     private void accionBuscarNombre() {
         try {
             String val = txtBuscar.getText().trim();
-            if (val.isEmpty()) {
-                error("Ingresa un nombre para buscar.");
-                return;
-            }
-            if (lista.estaVacia()) {
-                error("La lista está vacía.");
-                return;
-            }
+            if (val.isEmpty()) { error("Ingresa un nombre para buscar."); return; }
+            if (lista.estaVacia()) { error("La lista esta vacia."); return; }
+
             Proceso p = lista.buscarPorNombre(val);
             if (p == null) {
                 JOptionPane.showMessageDialog(this,
-                        "No se encontró ningún proceso con nombre: '" + val + "'",
+                        "No se encontro ningun proceso con nombre: " + val,
                         "Sin resultados", JOptionPane.INFORMATION_MESSAGE);
-                estado("🔎 Búsqueda por nombre '" + val + "': sin resultados.");
+                estado("Busqueda por nombre '" + val + "': sin resultados.");
             } else {
-                int pos = lista.posicionCursor();
-                estado("🔎 Encontrado en posición " + pos + " → " + p);
+                estado("Encontrado en posicion " + lista.posicionCursor() + " -> " + p);
                 refrescar();
             }
-        } catch (Exception ex) {
-            error(ex.getMessage());
-        }
+        } catch (Exception ex) { error(ex.getMessage()); }
     }
 
     private void accionBuscarId() {
@@ -689,27 +453,22 @@ public class VentanaPrincipal extends JFrame {
             try {
                 id = Integer.parseInt(val);
             } catch (NumberFormatException e) {
-                error("Para buscar por ID ingresa un número entero.");
+                error("Para buscar por ID ingresa un numero entero.");
                 return;
             }
-            if (lista.estaVacia()) {
-                error("La lista está vacía.");
-                return;
-            }
+            if (lista.estaVacia()) { error("La lista esta vacia."); return; }
+
             Proceso p = lista.buscarPorId(id);
             if (p == null) {
                 JOptionPane.showMessageDialog(this,
-                        "No se encontró ningún proceso con ID: " + id,
+                        "No se encontro ningun proceso con ID: " + id,
                         "Sin resultados", JOptionPane.INFORMATION_MESSAGE);
-                estado("🔎 Búsqueda por ID " + id + ": sin resultados.");
+                estado("Busqueda por ID " + id + ": sin resultados.");
             } else {
-                int pos = lista.posicionDeId(id);
-                estado("🔎 Encontrado en posición " + pos + " → " + p);
+                estado("Encontrado en posicion " + lista.posicionDeId(id) + " -> " + p);
                 refrescar();
             }
-        } catch (Exception ex) {
-            error(ex.getMessage());
-        }
+        } catch (Exception ex) { error(ex.getMessage()); }
     }
 
     // =========================================================
@@ -717,85 +476,72 @@ public class VentanaPrincipal extends JFrame {
     // =========================================================
     private void accionVaciar() {
         if (lista.estaVacia()) {
-            JOptionPane.showMessageDialog(this, "La lista ya está vacía.",
+            JOptionPane.showMessageDialog(this, "La lista ya esta vacia.",
                     "Aviso", JOptionPane.INFORMATION_MESSAGE);
             return;
         }
         int resp = JOptionPane.showConfirmDialog(this,
-                "¿Está seguro de vaciar toda la lista?",
-                "Confirmar", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+                "¿Vaciar toda la lista?", "Confirmar",
+                JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
         if (resp == JOptionPane.YES_OPTION) {
             lista.vaciar();
-            estado("🗑️ Lista vaciada.");
+            estado("Lista vaciada.");
             refrescar();
         }
     }
 
     // =========================================================
-    // Refresco de la tabla y panel cursor
+    // Refrescar tabla y panel de cursor
     // =========================================================
     private void refrescar() {
-        // Vaciar tabla
         modeloTabla.setRowCount(0);
 
         Proceso[] procesos = lista.obtenerTodos();
-        int cursorPos      = lista.posicionCursor();
+        int curPos = lista.posicionCursor();
 
         for (int i = 0; i < procesos.length; i++) {
-            Proceso p = procesos[i];
-            // Calcular nombres anterior y siguiente para mostrar en tabla
-            int iAnt = (i - 1 + procesos.length) % procesos.length;
-            int iSig = (i + 1) % procesos.length;
-            String ant = procesos[iAnt].nombre();
-            String sig = procesos[iSig].nombre();
-
+            Proceso p  = procesos[i];
+            int iAnt   = (i - 1 + procesos.length) % procesos.length;
+            int iSig   = (i + 1) % procesos.length;
             modeloTabla.addRow(new Object[]{
                     i,
                     p.id(),
                     p.nombre(),
                     p.prioridad(),
                     String.format("%.2f", p.tiempo()),
-                    "← " + ant,
-                    sig + " →"
+                    "<- " + procesos[iAnt].nombre(),
+                    procesos[iSig].nombre() + " ->"
             });
+        }
+
+        // Resaltar fila del cursor
+        if (curPos >= 0 && curPos < tabla.getRowCount()) {
+            tabla.setRowSelectionInterval(curPos, curPos);
+            tabla.scrollRectToVisible(tabla.getCellRect(curPos, 0, true));
+        } else {
+            tabla.clearSelection();
         }
 
         // Panel cursor
         Proceso cur = lista.getCursor();
         if (cur == null) {
-            lblCursorDato.setText("(lista vacía)");
-            lblCursorPos.setText("Posición: —");
-            lblIndicadorCircular.setText("");
+            lblCursorInfo.setText("(lista vacia)");
+            lblIndicador.setText(" ");
         } else {
-            lblCursorDato.setText(String.format("[%d]  %s  |  P:%d  T:%.1f ms",
-                    cur.id(), cur.nombre(), cur.prioridad(), cur.tiempo()));
-            lblCursorPos.setText("Posición: " + cursorPos + " / " + (lista.getTamanio() - 1)
-                    + "   —   Tamaño: " + lista.getTamanio());
-        }
-
-        // Indicador circular automático
-        if (!lista.estaVacia() && lista.getTamanio() > 1) {
-            if (lista.cursorEsPrimero() && lblIndicadorCircular.getText().isEmpty()) {
-                lblIndicadorCircular.setText("⚠️ En el primer nodo (← irá a último)");
-            } else if (lista.cursorEsUltimo() && lblIndicadorCircular.getText().isEmpty()) {
-                lblIndicadorCircular.setText("⚠️ En el último nodo (→ irá a primero)");
+            lblCursorInfo.setText(String.format(
+                    "[%d] %s  |  Prioridad: %d  Tiempo: %.1f ms  |  Pos: %d/%d",
+                    cur.id(), cur.nombre(), cur.prioridad(), cur.tiempo(),
+                    curPos, lista.getTamanio() - 1));
+            // Indicador automático si aún no hay mensaje de navegación
+            if (lblIndicador.getText().isBlank()) {
+                if (lista.cursorEsPrimero() && lista.getTamanio() > 1)
+                    lblIndicador.setText("[En el primer nodo — Anterior ira al ultimo]");
+                else if (lista.cursorEsUltimo() && lista.getTamanio() > 1)
+                    lblIndicador.setText("[En el ultimo nodo — Siguiente ira al primero]");
             }
         }
 
-        // Barra de estado — tamaño
-        Component[] comps = ((JPanel) getContentPane().getComponent(2)).getComponents();
-        for (Component c : comps) {
-            if (c instanceof JLabel lbl && "lblTamanio".equals(lbl.getName())) {
-                lbl.setText("Tamaño: " + lista.getTamanio());
-                break;
-            }
-        }
-
-        tabla.repaint();
-        // Scroll a la fila del cursor
-        if (cursorPos >= 0 && cursorPos < tabla.getRowCount()) {
-            tabla.scrollRectToVisible(tabla.getCellRect(cursorPos, 0, true));
-        }
+        lblTamanio.setText("Tamanio: " + lista.getTamanio());
     }
 
     // =========================================================
@@ -806,7 +552,7 @@ public class VentanaPrincipal extends JFrame {
     }
 
     private void error(String msg) {
-        lblEstado.setText("⚠️ " + msg);
+        lblEstado.setText("Error: " + msg);
         JOptionPane.showMessageDialog(this, msg, "Error", JOptionPane.ERROR_MESSAGE);
     }
 
